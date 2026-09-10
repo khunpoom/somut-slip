@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --font-sans: "Sarabun", "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Noto Serif Thai", "Sarabun", serif;
+  --font-sans: "Sarabun", "Noto Sans Thai", "Source Serif 4", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Noto Serif Thai", "Source Serif 4", "Sarabun", serif;
 
   --color-background: #f3efe6;
   --color-foreground: #1c1916;
@@ -25,6 +27,8 @@
   --color-income-foreground: #f3faf6;
   --color-expense: #a33b32;
   --color-expense-foreground: #fdf7f6;
+  --color-transfer: #3d5a73;
+  --color-transfer-foreground: #f3f6f8;
   --color-spine: #163d31;
 
   --radius-xs: 4px;
@@ -37,6 +41,34 @@
   --shadow-card: 0 1px 0 rgba(28, 25, 22, 0.04), 0 10px 28px -18px rgba(28, 25, 22, 0.28);
 }
 
+.dark {
+  --color-background: #121410;
+  --color-foreground: #ece8df;
+  --color-card: #1b1e18;
+  --color-card-foreground: #ece8df;
+  --color-primary: #8fbfa8;
+  --color-primary-foreground: #102018;
+  --color-secondary: #262922;
+  --color-secondary-foreground: #ece8df;
+  --color-muted: #23261f;
+  --color-muted-foreground: #a39c90;
+  --color-accent: #243028;
+  --color-accent-foreground: #cfe0d6;
+  --color-destructive: #d57a72;
+  --color-destructive-foreground: #2a1210;
+  --color-border: #32362c;
+  --color-input: #3a3e34;
+  --color-ring: #8fbfa8;
+  --color-income: #7dcaa4;
+  --color-income-foreground: #102018;
+  --color-expense: #d57a72;
+  --color-expense-foreground: #2a1210;
+  --color-transfer: #9bb4c7;
+  --color-transfer-foreground: #101820;
+  --color-spine: #8fbfa8;
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03), 0 12px 32px -20px rgba(0, 0, 0, 0.6);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
@@ -45,6 +77,11 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   html,

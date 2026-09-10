@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { SlipParse, TxType } from "./types";
+import type { MoneyType, SlipParse } from "./types";
 
 const PROMPT = `Extract data from this photo of a Thai bank transfer slip, PromptPay slip, or store receipt.
 
@@ -28,7 +28,7 @@ Rules:
 - If a field is unreadable, use null. Never invent an amount.
 - confidence is 0..1.`;
 
-function asType(value: unknown): TxType {
+function asType(value: unknown): MoneyType {
   return value === "income" ? "income" : "expense";
 }
 

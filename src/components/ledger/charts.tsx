@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/lib/i18n-hook";
 import { categoryTotals, formatBaht, lastMonths, monthShortTitle, sumBy } from "@/lib/ledger/format";
 import type { Category, Transaction } from "@/lib/ledger/types";
 
@@ -27,8 +28,9 @@ function barFill(index: number) {
 }
 
 export function TrendChart({ txs, month }: { txs: Transaction[]; month: string }) {
+  const { t, lang } = useT();
   const data = lastMonths(month, 6).map((key) => ({
-    name: monthShortTitle(key),
+    name: monthShortTitle(key, lang),
     income: sumBy(txs, key, "income"),
     expense: sumBy(txs, key, "expense"),
   }));
@@ -36,7 +38,7 @@ export function TrendChart({ txs, month }: { txs: Transaction[]; month: string }
   return (
     <Card>
       <CardHeader>
-        <CardTitle>รายรับ–รายจ่าย 6 เดือน</CardTitle>
+        <CardTitle>{t("trendTitle")}</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartFrame>
@@ -58,7 +60,7 @@ export function TrendChart({ txs, month }: { txs: Transaction[]; month: string }
               />
               <Tooltip
                 cursor={{ fill: "var(--color-muted)" }}
-                formatter={(value) => formatBaht(Number(value ?? 0))}
+                formatter={(value) => formatBaht(Number(value ?? 0), false, lang)}
                 contentStyle={{
                   background: "var(--color-card)",
                   border: "1px solid var(--color-border)",
@@ -66,8 +68,13 @@ export function TrendChart({ txs, month }: { txs: Transaction[]; month: string }
                   fontSize: 13,
                 }}
               />
-              <Bar dataKey="income" name="รายรับ" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expense" name="รายจ่าย" fill="var(--color-expense)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="income" name={t("income")} fill="var(--color-income)" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="expense"
+                name={t("expense")}
+                fill="var(--color-expense)"
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </ChartFrame>
@@ -85,17 +92,18 @@ export function CategoryChart({
   month: string;
   categories: Category[];
 }) {
-  const rows = categoryTotals(txs, month, "expense", categories).slice(0, 6);
+  const { t, lang } = useT();
+  const rows = categoryTotals(txs, month, "expense", categories, lang).slice(0, 6);
   const data = rows.map((row) => ({ name: row.name, total: row.total }));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>รายจ่ายตามหมวด</CardTitle>
+        <CardTitle>{t("catChart")}</CardTitle>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">ยังไม่มีรายจ่ายเดือนนี้</p>
+          <p className="py-10 text-center text-sm text-muted-foreground">{t("noExpenseMonth")}</p>
         ) : (
           <ChartFrame>
             <ResponsiveContainer width="100%" height="100%">
@@ -117,7 +125,7 @@ export function CategoryChart({
                   tick={{ fill: "var(--color-foreground)", fontSize: 12 }}
                 />
                 <Tooltip
-                  formatter={(value) => formatBaht(Number(value ?? 0))}
+                  formatter={(value) => formatBaht(Number(value ?? 0), false, lang)}
                   contentStyle={{
                     background: "var(--color-card)",
                     border: "1px solid var(--color-border)",
@@ -125,7 +133,7 @@ export function CategoryChart({
                     fontSize: 13,
                   }}
                 />
-                <Bar dataKey="total" name="รายจ่าย" radius={[0, 6, 6, 0]}>
+                <Bar dataKey="total" name={t("expense")} radius={[0, 6, 6, 0]}>
                   {data.map((row, i) => (
                     <Cell key={row.name} fill={barFill(i)} />
                   ))}

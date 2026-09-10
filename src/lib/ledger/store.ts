@@ -1,35 +1,85 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import {
+  buildDemoDebts,
+  buildDemoGoals,
+  buildDemoRecurring,
+  buildDemoRules,
   buildDemoTransactions,
   currentMonth,
   DEFAULT_CATEGORIES,
+  DEFAULT_MEMBERS,
   DEFAULT_WALLETS,
   FALLBACK_CATEGORY_ID,
+  normalizeWallet,
+  todayIso,
+  TRANSFER_CATEGORY_ID,
 } from "./defaults";
-import type { Category, CategoryKind, LedgerSnapshot, Transaction, Wallet } from "./types";
+import { dueRecurringDates, nextRecurringDate } from "./rules";
+import type {
+  AutoRule,
+  Category,
+  CategoryKind,
+  Debt,
+  Goal,
+  Lang,
+  LedgerSnapshot,
+  Member,
+  RecurringItem,
+  ThemeMode,
+  Transaction,
+  Wallet,
+  WalletKind,
+} from "./types";
 
 const STORAGE_KEY = "somut-slip-v1";
 
-type Draft = Omit<Transaction, "id" | "createdAt">;
+export type Draft = Omit<Transaction, "id" | "createdAt">;
 
 interface LedgerState {
   isDemo: boolean;
   initialized: boolean;
   selectedMonth: string;
+  lang: Lang;
+  theme: ThemeMode;
   transactions: Transaction[];
   wallets: Wallet[];
   categories: Category[];
+  members: Member[];
+  recurring: RecurringItem[];
+  debts: Debt[];
+  goals: Goal[];
+  rules: AutoRule[];
   setMonth: (month: string) => void;
+  setLang: (lang: Lang) => void;
+  setTheme: (theme: ThemeMode) => void;
   addTransaction: (draft: Draft) => string;
   updateTransaction: (id: string, draft: Draft) => void;
   deleteTransaction: (id: string) => void;
-  addWallet: (name: string) => void;
-  renameWallet: (id: string, name: string) => void;
+  addWallet: (name: string, kind: WalletKind) => void;
+  updateWallet: (id: string, patch: { name?: string; kind?: WalletKind }) => void;
   removeWallet: (id: string) => void;
   addCategory: (name: string, type: CategoryKind) => boolean;
   updateCategory: (id: string, patch: { name?: string; type?: CategoryKind }) => void;
   removeCategory: (id: string) => void;
+  addMember: (name: string) => boolean;
+  updateMember: (id: string, name: string) => void;
+  removeMember: (id: string) => void;
+  addRecurring: (item: Omit<RecurringItem, "id">) => void;
+  updateRecurring: (id: string, patch: Partial<RecurringItem>) => void;
+  removeRecurring: (id: string) => void;
+  addDebt: (item: Omit<Debt, "id">) => void;
+  updateDebt: (id: string, patch: Partial<Debt>) => void;
+  removeDebt: (id: string) => void;
+  payDebt: (id: string, amount: number, walletId: string, date: string) => void;
+  addGoal: (item: Omit<Goal, "id">) => void;
+  updateGoal: (id: string, patch: Partial<Goal>) => void;
+  removeGoal: (id: string) => void;
+  contributeGoal: (id: string, amount: number, walletId: string, date: string) => void;
+  addRule: (pattern: string, categoryId: string, walletId?: string) => boolean;
+  updateRule: (id: string, patch: Partial<AutoRule>) => void;
+  removeRule: (id: string) => void;
+  ensureRecurringPosted: () => number;
   keepDemoData: () => void;
   clearAndStart: () => void;
   restoreDemo: () => void;
@@ -56,16 +106,36 @@ const noopStorage = {
   removeItem: () => {},
 };
 
+function ensureCategories(list: Category[] | undefined) {
+  const base = list?.length ? [...list] : [...DEFAULT_CATEGORIES];
+  if (!base.some((c) => c.id === FALLBACK_CATEGORY_ID)) {
+    base.push({ id: FALLBACK_CATEGORY_ID, name: "อื่นๆ", type: "both" });
+  }
+  if (!base.some((c) => c.id === TRANSFER_CATEGORY_ID)) {
+    base.push({ id: TRANSFER_CATEGORY_ID, name: "โอนภายใน", type: "both" });
+  }
+  return base;
+}
+
 export const useLedger = create<LedgerState>()(
   persist(
     (set, get) => ({
       isDemo: true,
       initialized: true,
       selectedMonth: currentMonth(),
+      lang: "th",
+      theme: "paper",
       transactions: buildDemoTransactions(),
       wallets: DEFAULT_WALLETS,
       categories: DEFAULT_CATEGORIES,
+      members: DEFAULT_MEMBERS,
+      recurring: buildDemoRecurring(),
+      debts: buildDemoDebts(),
+      goals: buildDemoGoals(),
+      rules: buildDemoRules(),
       setMonth: (month) => set({ selectedMonth: month }),
+      setLang: (lang) => set({ lang }),
+      setTheme: (theme) => set({ theme }),
       addTransaction: (draft) => {
         const id = newId();
         const row: Transaction = {
@@ -79,9 +149,7 @@ export const useLedger = create<LedgerState>()(
       updateTransaction: (id, draft) => {
         set({
           isDemo: false,
-          transactions: get().transactions.map((tx) =>
-            tx.id === id ? { ...tx, ...draft } : tx,
-          ),
+          transactions: get().transactions.map((tx) => (tx.id === id ? { ...tx, ...draft } : tx)),
         });
       },
       deleteTransaction: (id) => {
@@ -90,18 +158,22 @@ export const useLedger = create<LedgerState>()(
           transactions: get().transactions.filter((tx) => tx.id !== id),
         });
       },
-      addWallet: (name) => {
+      addWallet: (name, kind) => {
         const trimmed = name.trim();
         if (!trimmed) return;
         set({
-          wallets: [...get().wallets, { id: newId(), name: trimmed }],
+          wallets: [...get().wallets, { id: newId(), name: trimmed, kind }],
         });
       },
-      renameWallet: (id, name) => {
-        const trimmed = name.trim();
-        if (!trimmed) return;
+      updateWallet: (id, patch) => {
+        const name = patch.name?.trim();
+        if (patch.name !== undefined && !name) return;
         set({
-          wallets: get().wallets.map((w) => (w.id === id ? { ...w, name: trimmed } : w)),
+          wallets: get().wallets.map((w) =>
+            w.id === id
+              ? { ...w, ...(name ? { name } : {}), ...(patch.kind ? { kind: patch.kind } : {}) }
+              : w,
+          ),
         });
       },
       removeWallet: (id) => {
@@ -110,9 +182,11 @@ export const useLedger = create<LedgerState>()(
         const fallback = wallets[0].id;
         set({
           wallets,
-          transactions: get().transactions.map((tx) =>
-            tx.walletId === id ? { ...tx, walletId: fallback } : tx,
-          ),
+          transactions: get().transactions.map((tx) => ({
+            ...tx,
+            walletId: tx.walletId === id ? fallback : tx.walletId,
+            toWalletId: tx.toWalletId === id ? fallback : tx.toWalletId,
+          })),
         });
       },
       addCategory: (name, type) => {
@@ -141,21 +215,173 @@ export const useLedger = create<LedgerState>()(
         });
       },
       removeCategory: (id) => {
-        if (id === FALLBACK_CATEGORY_ID) return;
+        if (id === FALLBACK_CATEGORY_ID || id === TRANSFER_CATEGORY_ID) return;
         const categories = get().categories.filter((c) => c.id !== id);
         const fallback =
-          categories.find((c) => c.id === FALLBACK_CATEGORY_ID)?.id ??
-          categories[0]?.id ??
-          FALLBACK_CATEGORY_ID;
-        if (!categories.some((c) => c.id === FALLBACK_CATEGORY_ID) && fallback === FALLBACK_CATEGORY_ID) {
-          categories.push({ id: FALLBACK_CATEGORY_ID, name: "อื่นๆ", type: "both" });
-        }
+          categories.find((c) => c.id === FALLBACK_CATEGORY_ID)?.id ?? FALLBACK_CATEGORY_ID;
         set({
-          categories,
+          categories: ensureCategories(categories),
           transactions: get().transactions.map((tx) =>
             tx.categoryId === id ? { ...tx, categoryId: fallback } : tx,
           ),
         });
+      },
+      addMember: (name) => {
+        const trimmed = name.trim();
+        if (!trimmed) return false;
+        set({ members: [...get().members, { id: `mem-${newId()}`, name: trimmed }] });
+        return true;
+      },
+      updateMember: (id, name) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        set({
+          members: get().members.map((m) => (m.id === id ? { ...m, name: trimmed } : m)),
+        });
+      },
+      removeMember: (id) => {
+        if (get().members.length <= 1) return;
+        set({
+          members: get().members.filter((m) => m.id !== id),
+          transactions: get().transactions.map((tx) =>
+            tx.memberId === id ? { ...tx, memberId: undefined } : tx,
+          ),
+        });
+      },
+      addRecurring: (item) => {
+        set({ recurring: [...get().recurring, { ...item, id: `rec-${newId()}` }] });
+      },
+      updateRecurring: (id, patch) => {
+        set({
+          recurring: get().recurring.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+        });
+      },
+      removeRecurring: (id) => {
+        set({ recurring: get().recurring.filter((r) => r.id !== id) });
+      },
+      addDebt: (item) => {
+        set({ debts: [...get().debts, { ...item, id: `debt-${newId()}` }] });
+      },
+      updateDebt: (id, patch) => {
+        set({ debts: get().debts.map((d) => (d.id === id ? { ...d, ...patch } : d)) });
+      },
+      removeDebt: (id) => {
+        set({ debts: get().debts.filter((d) => d.id !== id) });
+      },
+      payDebt: (id, amount, walletId, date) => {
+        const debt = get().debts.find((d) => d.id === id);
+        if (!debt || amount <= 0) return;
+        const paid = Math.min(amount, debt.remaining);
+        const row: Transaction = {
+          id: newId(),
+          type: "expense",
+          amount: paid,
+          date,
+          categoryId: FALLBACK_CATEGORY_ID,
+          walletId,
+          payee: debt.name,
+          note: debt.lender,
+          source: "manual",
+          debtId: id,
+          createdAt: new Date().toISOString(),
+        };
+        set({
+          isDemo: false,
+          transactions: [row, ...get().transactions],
+          debts: get().debts.map((d) =>
+            d.id === id ? { ...d, remaining: Math.max(0, d.remaining - paid) } : d,
+          ),
+        });
+      },
+      addGoal: (item) => {
+        set({ goals: [...get().goals, { ...item, id: `goal-${newId()}` }] });
+      },
+      updateGoal: (id, patch) => {
+        set({ goals: get().goals.map((g) => (g.id === id ? { ...g, ...patch } : g)) });
+      },
+      removeGoal: (id) => {
+        set({ goals: get().goals.filter((g) => g.id !== id) });
+      },
+      contributeGoal: (id, amount, walletId, date) => {
+        const goal = get().goals.find((g) => g.id === id);
+        if (!goal || amount <= 0) return;
+        const row: Transaction = {
+          id: newId(),
+          type: "transfer",
+          amount,
+          date,
+          categoryId: TRANSFER_CATEGORY_ID,
+          walletId,
+          payee: goal.name,
+          note: "",
+          source: "manual",
+          goalId: id,
+          createdAt: new Date().toISOString(),
+        };
+        set({
+          isDemo: false,
+          transactions: [row, ...get().transactions],
+          goals: get().goals.map((g) => (g.id === id ? { ...g, saved: g.saved + amount } : g)),
+        });
+      },
+      addRule: (pattern, categoryId, walletId) => {
+        const trimmed = pattern.trim();
+        if (!trimmed) return false;
+        set({
+          rules: [
+            ...get().rules,
+            { id: `rule-${newId()}`, pattern: trimmed, categoryId, walletId },
+          ],
+        });
+        return true;
+      },
+      updateRule: (id, patch) => {
+        set({
+          rules: get().rules.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+        });
+      },
+      removeRule: (id) => {
+        set({ rules: get().rules.filter((r) => r.id !== id) });
+      },
+      ensureRecurringPosted: () => {
+        const today = todayIso();
+        const extra: Transaction[] = [];
+        const existing = get().transactions;
+        const nextItems = get().recurring.map((item) => {
+          const dates = dueRecurringDates(item, today).filter(
+            (date) =>
+              !existing.some((tx) => tx.recurringId === item.id && tx.date === date) &&
+              !extra.some((tx) => tx.recurringId === item.id && tx.date === date),
+          );
+          if (!dates.length) return item;
+          for (const date of dates) {
+            extra.push({
+              id: newId(),
+              type: item.type,
+              amount: item.amount,
+              date,
+              categoryId: item.categoryId,
+              walletId: item.walletId,
+              memberId: item.memberId,
+              payee: item.name,
+              note: item.isSubscription ? "subscription" : "",
+              source: "recurring",
+              recurringId: item.id,
+              createdAt: new Date().toISOString(),
+            });
+          }
+          const last = dates[dates.length - 1];
+          return {
+            ...item,
+            nextDate: nextRecurringDate(last, item.frequency, item.dayOfMonth),
+          };
+        });
+        if (!extra.length) return 0;
+        set({
+          recurring: nextItems,
+          transactions: [...extra, ...get().transactions],
+        });
+        return extra.length;
       },
       keepDemoData: () => set({ isDemo: false }),
       clearAndStart: () =>
@@ -163,6 +389,10 @@ export const useLedger = create<LedgerState>()(
           isDemo: false,
           transactions: [],
           wallets: DEFAULT_WALLETS,
+          members: DEFAULT_MEMBERS.slice(0, 1),
+          recurring: [],
+          debts: [],
+          goals: [],
         }),
       restoreDemo: () =>
         set({
@@ -170,6 +400,11 @@ export const useLedger = create<LedgerState>()(
           transactions: buildDemoTransactions(),
           wallets: DEFAULT_WALLETS,
           categories: DEFAULT_CATEGORIES,
+          members: DEFAULT_MEMBERS,
+          recurring: buildDemoRecurring(),
+          debts: buildDemoDebts(),
+          goals: buildDemoGoals(),
+          rules: buildDemoRules(),
           selectedMonth: currentMonth(),
         }),
       replaceAll: (snap) => {
@@ -177,15 +412,29 @@ export const useLedger = create<LedgerState>()(
           isDemo: snap.isDemo,
           initialized: true,
           transactions: snap.transactions ?? [],
-          wallets: snap.wallets?.length ? snap.wallets : DEFAULT_WALLETS,
-          categories: snap.categories?.length ? snap.categories : DEFAULT_CATEGORIES,
+          wallets: (snap.wallets?.length ? snap.wallets : DEFAULT_WALLETS).map(normalizeWallet),
+          categories: ensureCategories(snap.categories),
+          members: snap.members?.length ? snap.members : DEFAULT_MEMBERS.slice(0, 1),
+          recurring: snap.recurring ?? [],
+          debts: snap.debts ?? [],
+          goals: snap.goals ?? [],
+          rules: snap.rules ?? [],
+          lang: snap.lang === "en" ? "en" : "th",
+          theme: snap.theme === "night" || snap.theme === "system" ? snap.theme : "paper",
         });
       },
       exportSnapshot: () => ({
-        version: 1,
+        version: 2,
         transactions: get().transactions,
         wallets: get().wallets,
         categories: get().categories,
+        members: get().members,
+        recurring: get().recurring,
+        debts: get().debts,
+        goals: get().goals,
+        rules: get().rules,
+        lang: get().lang,
+        theme: get().theme,
         isDemo: get().isDemo,
         initialized: true,
       }),
@@ -200,18 +449,35 @@ export const useLedger = create<LedgerState>()(
         return {
           ...currentState,
           ...persisted,
-          categories: persisted.categories?.length
-            ? persisted.categories
-            : DEFAULT_CATEGORIES,
-          wallets: persisted.wallets?.length ? persisted.wallets : DEFAULT_WALLETS,
+          lang: persisted.lang === "en" ? "en" : currentState.lang,
+          theme:
+            persisted.theme === "night" || persisted.theme === "system" || persisted.theme === "paper"
+              ? persisted.theme
+              : currentState.theme,
+          categories: ensureCategories(persisted.categories),
+          wallets: (persisted.wallets?.length ? persisted.wallets : DEFAULT_WALLETS).map(
+            normalizeWallet,
+          ),
+          members: persisted.members?.length ? persisted.members : DEFAULT_MEMBERS,
+          recurring: persisted.recurring ?? currentState.recurring,
+          debts: persisted.debts ?? currentState.debts,
+          goals: persisted.goals ?? currentState.goals,
+          rules: persisted.rules ?? currentState.rules,
         };
       },
       partialize: (state) => ({
         isDemo: state.isDemo,
         initialized: state.initialized,
+        lang: state.lang,
+        theme: state.theme,
         transactions: stripThumbs(state.transactions),
         wallets: state.wallets,
         categories: state.categories,
+        members: state.members,
+        recurring: state.recurring,
+        debts: state.debts,
+        goals: state.goals,
+        rules: state.rules,
       }),
     },
   ),

@@ -11,12 +11,6 @@ artifacts
 .DS_Store
 .env
 .env.*
-!.env.example
 .vscode
 coverage
 tmp
-.project_id
-.node_modules.lock
-public/__grok
-AGENTS.md
-startup.sh

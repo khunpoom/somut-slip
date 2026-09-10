@@ -14,6 +14,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n-hook";
 import { useLedger } from "@/lib/ledger/store";
 
 type NewSearch = {
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/new")({
 });
 
 function NewPage() {
+  const { t } = useT();
   const { id, slip } = Route.useSearch();
   const navigate = useNavigate();
   const transactions = useLedger((s) => s.transactions);
@@ -41,39 +43,35 @@ function NewPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold">
-            {editing ? "แก้ไขรายการ" : slip ? "อ่านสลิป" : "รายการใหม่"}
+            {editing ? t("editTx") : slip ? t("slipTitle") : t("newTx")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {editing
-              ? "ปรับยอด หมวด หรือรูปสลิปได้"
-              : "กรอกมือ หรือให้ระบบอ่านยอดจากรูปสลิป"}
+            {editing ? t("editTxHint") : t("newTxHint")}
           </p>
         </div>
         {editing ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" aria-label="ลบรายการ">
+              <Button type="button" variant="ghost" size="icon" aria-label={t("delete")}>
                 <Trash2 />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>ลบรายการนี้?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  ลบแล้วกู้คืนไม่ได้ เว้นแต่คุณมีไฟล์สำรอง
-                </AlertDialogDescription>
+                <AlertDialogTitle>{t("deleteTxQ")}</AlertDialogTitle>
+                <AlertDialogDescription>{t("deleteTxHint")}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                 <AlertDialogAction
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   onClick={() => {
                     deleteTransaction(editing.id);
-                    toast.success("ลบรายการแล้ว");
+                    toast.success(t("deletedTx"));
                     void navigate({ to: "/transactions" });
                   }}
                 >
-                  ลบ
+                  {t("delete")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

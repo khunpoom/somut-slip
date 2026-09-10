@@ -1,31 +1,55 @@
-# สมุดสลิป
+# สมุดสลิป / Somut Slip
 
 สมุดรายรับรายจ่ายส่วนตัว อ่านยอดจากสลิปโอนเงิน / พร้อมเพย์ / ใบเสร็จ แล้วบันทึกในเครื่อง
 
-## ฟีเจอร์
+โปรเจกต์เล่น ๆ จากไอเดียยามว่าง **เขียนด้วย Grok**
 
-- บันทึกรายรับ–รายจ่าย แยกกระเป๋าเงิน
-- ปรับแต่งหมวดหมู่เองได้ที่หน้า **ตั้งค่า** (เพิ่ม เปลี่ยนชื่อ เปลี่ยนประเภท ลบ)
-- อ่านสลิปจากรูป แล้วให้ตรวจก่อนบันทึก
-- ภาพรวมรายเดือน กราฟ 6 เดือน
-- ส่งออก / นำเข้า JSON และ CSV
+A hobby ledger from an idle idea, **written with Grok**.
 
-ข้อมูลรายการเก็บในเบราว์เซอร์ของเครื่องคุณ ไม่ขึ้นฐานข้อมูลกลาง
+## Features
 
-## รันบนเครื่อง
+- Income, expense, and **internal transfers** (transfers are not counted as income)
+- Cash, bank, credit card, e-Wallet (PromptPay, TrueMoney, …)
+- Custom categories
+- **Quick add** on the home screen
+- Recurring bills / subscriptions
+- Debts and savings goals
+- Auto-category rules (payee contains → category)
+- Search and filters
+- Household members on this device (not cloud-synced)
+- Thai / English, paper / night / system theme
+- Slip OCR (optional xAI key)
+- JSON / CSV backup
 
-โปรเจกต์นี้สร้างบน TanStack Start + React + Tailwind
+Data stays in the browser. Nothing is uploaded to a central database.
+
+## Run
 
 ```bash
 npm install
 npm run dev
 ```
 
-เปิดที่ http://localhost:8080
+Default port is `8080`.
 
 ```bash
-npm run build
 npm run typecheck
+npm run build
 ```
 
-การอ่านสลิปใช้ xAI API (`XAI_API_KEY` ฝั่งเซิร์ฟเวอร์ — ดู `.env.example`) ถ้าไม่มีคีย์ ยังกรอกมือได้ตามปกติ
+Slip reading uses `XAI_API_KEY` on the server. Without a key, you can still enter entries by hand.
+
+## Windows opener
+
+- `public/somut-slip.bat` — double-click if Node is installed; it starts the app and opens the browser
+- `desktop/launcher.c` — compile a `.exe` on Windows or with MinGW:
+
+```bash
+x86_64-w64-mingw32-gcc -O2 -mwindows desktop/launcher.c -lshell32 -o public/SomutSlip.exe
+```
+
+- Electron window (optional): `npx electron desktop/main.mjs` while `npm run dev` is running
+
+## Privacy
+
+Family sharing is **same-device only**. Export JSON if you want to copy the book to another machine.
