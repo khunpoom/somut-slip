@@ -6,6 +6,8 @@
 
 A hobby ledger from an idle idea, **written with Grok**.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/khunpoom/somut-slip&env=XAI_API_KEY&envDescription=Optional%20xAI%20API%20key%20for%20reading%20transfer%20slips.%20Leave%20blank%20to%20enter%20amounts%20by%20hand.)
+
 ## Features
 
 - Income, expense, and **internal transfers** (transfers are not counted as income)
@@ -21,16 +23,27 @@ A hobby ledger from an idle idea, **written with Grok**.
 - Slip OCR (optional xAI key)
 - JSON / CSV backup
 
-Data stays in the browser. Nothing is uploaded to a central database.
+Data stays in the visitor's browser. Nothing is uploaded to a central database.
 
-## Run
+## Deploy on Vercel
+
+ได้ — โปรเจกต์นี้เป็น TanStack Start + Nitro ที่ build แบบ Vercel อยู่แล้ว
+
+1. เปิด [vercel.com/new](https://vercel.com/new) แล้ว Import repo `khunpoom/somut-slip`
+2. Framework ควรเป็น **TanStack Start** (มี `vercel.json` บังคับไว้แล้ว)
+3. ใส่ env `XAI_API_KEY` ถ้าอยากให้อ่านสลิปด้วย AI — ไม่ใส่ก็ใช้กรอกมือได้
+4. ไม่ต้องใส่ `DATABASE_URL` ข้อมูลรายการอยู่บนเครื่องผู้ใช้แต่ละคน
+
+หรือกดปุ่ม Deploy ด้านบน
+
+หลัง deploy ทุกคนเปิดลิงก์ได้ แต่สมุดของแต่ละคนแยกกันในเบราว์เซอร์ตัวเอง
+
+## Run locally
 
 ```bash
 npm install
 npm run dev
 ```
-
-Default port is `8080`.
 
 ```bash
 npm run typecheck
