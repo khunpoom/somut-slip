@@ -18,7 +18,7 @@ import {
 } from "@/lib/ledger/defaults";
 import { parseBahtInput } from "@/lib/ledger/format";
 import { prepareSlipImage } from "@/lib/ledger/image";
-import { parseSlipImage } from "@/lib/ledger/parse-slip";
+import { readSlip } from "@/lib/ledger/read-slip";
 import { matchRule } from "@/lib/ledger/rules";
 import { useLedger } from "@/lib/ledger/store";
 import type { CategoryId, MoneyType, Transaction, TxType } from "@/lib/ledger/types";
@@ -93,6 +93,7 @@ export function TransactionForm({
   const members = useLedger((s) => s.members);
   const allCategories = useLedger((s) => s.categories);
   const rules = useLedger((s) => s.rules);
+  const geminiKey = useLedger((s) => s.geminiKey);
   const addTransaction = useLedger((s) => s.addTransaction);
   const updateTransaction = useLedger((s) => s.updateTransaction);
   const defaultWallet = wallets[0]?.id ?? "cash";
@@ -147,7 +148,7 @@ export function TransactionForm({
     try {
       const prepared = await prepareSlipImage(file);
       setPreview(prepared.thumb);
-      const result = await parseSlipImage({ data: { imageDataUrl: prepared.dataUrl } });
+      const result = await readSlip(prepared.dataUrl, geminiKey);
       if (!result.ok) {
         patch({ source: "slip", slipThumb: prepared.thumb });
         toast.error(result.error);
@@ -174,6 +175,8 @@ export function TransactionForm({
       const conf = Math.round(slip.confidence * 100);
       if (slip.amount == null) {
         toast.message(t("slipPartial"));
+      } else if (result.engine === "local") {
+        toast.success(t("slipOkLocal"));
       } else {
         toast.success(conf ? t("slipOkP", { n: conf }) : t("slipOk"));
       }

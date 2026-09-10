@@ -42,6 +42,7 @@ interface LedgerState {
   selectedMonth: string;
   lang: Lang;
   theme: ThemeMode;
+  geminiKey: string;
   transactions: Transaction[];
   wallets: Wallet[];
   categories: Category[];
@@ -53,6 +54,7 @@ interface LedgerState {
   setMonth: (month: string) => void;
   setLang: (lang: Lang) => void;
   setTheme: (theme: ThemeMode) => void;
+  setGeminiKey: (key: string) => void;
   addTransaction: (draft: Draft) => string;
   updateTransaction: (id: string, draft: Draft) => void;
   deleteTransaction: (id: string) => void;
@@ -125,6 +127,7 @@ export const useLedger = create<LedgerState>()(
       selectedMonth: currentMonth(),
       lang: "th",
       theme: "paper",
+      geminiKey: "",
       transactions: buildDemoTransactions(),
       wallets: DEFAULT_WALLETS,
       categories: DEFAULT_CATEGORIES,
@@ -136,6 +139,7 @@ export const useLedger = create<LedgerState>()(
       setMonth: (month) => set({ selectedMonth: month }),
       setLang: (lang) => set({ lang }),
       setTheme: (theme) => set({ theme }),
+      setGeminiKey: (key) => set({ geminiKey: key.trim() }),
       addTransaction: (draft) => {
         const id = newId();
         const row: Transaction = {
@@ -454,6 +458,7 @@ export const useLedger = create<LedgerState>()(
             persisted.theme === "night" || persisted.theme === "system" || persisted.theme === "paper"
               ? persisted.theme
               : currentState.theme,
+          geminiKey: typeof persisted.geminiKey === "string" ? persisted.geminiKey : currentState.geminiKey,
           categories: ensureCategories(persisted.categories),
           wallets: (persisted.wallets?.length ? persisted.wallets : DEFAULT_WALLETS).map(
             normalizeWallet,
@@ -470,6 +475,7 @@ export const useLedger = create<LedgerState>()(
         initialized: state.initialized,
         lang: state.lang,
         theme: state.theme,
+        geminiKey: state.geminiKey,
         transactions: stripThumbs(state.transactions),
         wallets: state.wallets,
         categories: state.categories,

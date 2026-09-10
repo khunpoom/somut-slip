@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, Monitor, Moon, Sun, Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import { Download, Monitor, Moon, ScanLine, Sun, Upload } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -51,6 +51,8 @@ function SettingsPage() {
   const theme = useLedger((s) => s.theme);
   const setLang = useLedger((s) => s.setLang);
   const setTheme = useLedger((s) => s.setTheme);
+  const geminiKey = useLedger((s) => s.geminiKey);
+  const setGeminiKey = useLedger((s) => s.setGeminiKey);
   const addWallet = useLedger((s) => s.addWallet);
   const updateWallet = useLedger((s) => s.updateWallet);
   const removeWallet = useLedger((s) => s.removeWallet);
@@ -69,7 +71,12 @@ function SettingsPage() {
   const [categoryKind, setCategoryKind] = useState<CategoryKind>("expense");
   const [rulePattern, setRulePattern] = useState("");
   const [ruleCat, setRuleCat] = useState("food");
+  const [geminiDraft, setGeminiDraft] = useState(geminiKey);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setGeminiDraft(geminiKey);
+  }, [geminiKey]);
 
   function exportJson() {
     const snap = exportSnapshot();
@@ -433,6 +440,49 @@ function SettingsPage() {
               {t("add")}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ScanLine className="size-4" />
+            {t("ocrTitle")}
+          </CardTitle>
+          <CardDescription>{t("ocrHint")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+            {geminiKey ? t("ocrHasKey") : t("ocrLocal")}
+          </p>
+          <form
+            className="flex flex-col gap-2 sm:flex-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setGeminiKey(geminiDraft);
+              toast.success(geminiDraft.trim() ? t("ocrGeminiSaved") : t("ocrGeminiCleared"));
+            }}
+          >
+            <Input
+              type="password"
+              autoComplete="off"
+              value={geminiDraft}
+              onChange={(e) => setGeminiDraft(e.target.value)}
+              placeholder={t("ocrGeminiPh")}
+              aria-label={t("ocrGemini")}
+            />
+            <Button type="submit" variant="outline">
+              {t("save")}
+            </Button>
+          </form>
+          <a
+            href="https://aistudio.google.com/apikey"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block text-sm text-primary hover:underline"
+          >
+            {t("ocrGetKey")}
+          </a>
         </CardContent>
       </Card>
 

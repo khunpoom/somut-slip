@@ -6,7 +6,7 @@
 
 A hobby ledger from an idle idea, **written with Grok**.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/khunpoom/somut-slip&env=XAI_API_KEY&envDescription=Optional%20xAI%20API%20key%20for%20reading%20transfer%20slips.%20Leave%20blank%20to%20enter%20amounts%20by%20hand.)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/khunpoom/somut-slip)
 
 ## Features
 
@@ -20,10 +20,18 @@ A hobby ledger from an idle idea, **written with Grok**.
 - Search and filters
 - Household members on this device (not cloud-synced)
 - Thai / English, paper / night / system theme
-- Slip OCR (optional xAI key)
+- Slip OCR on-device (free) + optional Gemini key
 - JSON / CSV backup
 
 Data stays in the visitor's browser. Nothing is uploaded to a central database.
+
+## Slip reading
+
+Works without any paid API:
+
+1. **On-device OCR (default)** — Tesseract reads Thai/English on this device. No key.
+2. **Gemini (optional, free)** — paste a key from [Google AI Studio](https://aistudio.google.com/apikey) in Settings for better accuracy. The key stays in the browser and is not exported with backups.
+3. **Server keys (optional)** — `GEMINI_API_KEY` or `XAI_API_KEY` on Vercel if you want cloud reading without each visitor pasting a key. Don't set a shared key on a public site; visitors would spend your quota.
 
 ## Deploy on Vercel
 
@@ -31,7 +39,7 @@ Data stays in the visitor's browser. Nothing is uploaded to a central database.
 
 1. เปิด [vercel.com/new](https://vercel.com/new) แล้ว Import repo `khunpoom/somut-slip`
 2. Framework ควรเป็น **TanStack Start** (มี `vercel.json` บังคับไว้แล้ว)
-3. ใส่ env `XAI_API_KEY` ถ้าอยากให้อ่านสลิปด้วย AI — ไม่ใส่ก็ใช้กรอกมือได้
+3. ไม่ต้องใส่ API key — อ่านสลิปในเครื่องได้เลย
 4. ไม่ต้องใส่ `DATABASE_URL` ข้อมูลรายการอยู่บนเครื่องผู้ใช้แต่ละคน
 
 หรือกดปุ่ม Deploy ด้านบน
@@ -49,8 +57,6 @@ npm run dev
 npm run typecheck
 npm run build
 ```
-
-Slip reading uses `XAI_API_KEY` on the server. Without a key, you can still enter entries by hand.
 
 ## Windows opener
 
