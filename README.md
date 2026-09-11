@@ -6,8 +6,6 @@
 
 A hobby ledger from an idle idea, **written with Grok**.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/khunpoom/somut-slip)
-
 ## Features
 
 - Income, expense, and **internal transfers** (transfers are not counted as income)
