@@ -31,19 +31,6 @@ Works without any paid API:
 2. **Gemini (optional, free)** — paste a key from [Google AI Studio](https://aistudio.google.com/apikey) in Settings for better accuracy. The key stays in the browser and is not exported with backups.
 3. **Server keys (optional)** — `GEMINI_API_KEY` or `XAI_API_KEY` on Vercel if you want cloud reading without each visitor pasting a key. Don't set a shared key on a public site; visitors would spend your quota.
 
-## Deploy on Vercel
-
-ได้ — โปรเจกต์นี้เป็น TanStack Start + Nitro ที่ build แบบ Vercel อยู่แล้ว
-
-1. เปิด [vercel.com/new](https://vercel.com/new) แล้ว Import repo `khunpoom/somut-slip`
-2. Framework ควรเป็น **TanStack Start** (มี `vercel.json` บังคับไว้แล้ว)
-3. ไม่ต้องใส่ API key — อ่านสลิปในเครื่องได้เลย
-4. ไม่ต้องใส่ `DATABASE_URL` ข้อมูลรายการอยู่บนเครื่องผู้ใช้แต่ละคน
-
-หรือกดปุ่ม Deploy ด้านบน
-
-หลัง deploy ทุกคนเปิดลิงก์ได้ แต่สมุดของแต่ละคนแยกกันในเบราว์เซอร์ตัวเอง
-
 ## Run locally
 
 ```bash
